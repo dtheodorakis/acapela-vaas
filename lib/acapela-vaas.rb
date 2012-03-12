@@ -1,4 +1,6 @@
+require "net/http"
 require "acapela-vaas/version"
+require "acapela-vaas/exceptions"
 module Acapela
   module Vaas
     @@credentials = {}
@@ -12,31 +14,35 @@ module Acapela
     def self.credentials=(params)
       params.keys.each{|k| raise(ArgumentError, 
         "Argument #{k} is not accepted") unless [:login, :password, :app].member?(k)}
-      @@credentials = params
+        @@credentials = params
     end
     def self.say(*args)
       options = args.extract_options!
       options = {speaker: @@config[:speaker]}.merge(options)
       params = {
-      	prot_vers: 2,
-      	cl_env: "Ruby acapela-vaas #{VERSION}",
-      	cl_login: @@credentials[:login],
-      	cl_app: @@credentials[:app],
-      	cl_pwd: @@credentials[:password],
+        prot_vers: 2,
+        cl_env: "Ruby acapela-vaas #{VERSION}",
+        cl_login: @@credentials[:login],
+        cl_app: @@credentials[:app],
+        cl_pwd: @@credentials[:password],
       }
       if options[:sound_id].blank?
         params.merge!({
           req_voice: options[:speaker],
-        	req_text: args[0]
-        })
+          req_text: args[0]
+          })
       else
         params.merge!({
           req_type: "GET",
-        	req_snd_id: options[:sound_id]
-        })
+          req_snd_id: options[:sound_id]
+          })
       end
       response = Net::HTTP.post_form(@@config[:uri], params)
-      Sound.new(CGI::parse(response.body))
+      sound = Sound.new(CGI::parse(response.body))
+      if sound.url.nil?
+        raise Exceptions::UnknownError, "Unable to create sound file"
+      end
+      sound
     end
     class Sound
       def initialize(response)
