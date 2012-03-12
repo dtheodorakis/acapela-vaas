@@ -13,7 +13,7 @@ Setup
 Usage
 -----------
 
-## Create a new sound file:
+### Create a new sound file:
 
 	Acapela::Vaas.say("This is a sample text")
 
